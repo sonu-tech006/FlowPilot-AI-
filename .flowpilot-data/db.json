@@ -1,0 +1,1092 @@
+{
+  "users": [
+    {
+      "id": "usr-operator-01",
+      "name": "Sarah Chen",
+      "email": "sarah.chen@flowpilot.internal",
+      "role": "OPERATOR",
+      "workspaceId": "ws-prod-01",
+      "createdAt": "2026-10-13T05:26:47.184Z"
+    },
+    {
+      "id": "usr-admin-01",
+      "name": "Marcus Vance",
+      "email": "marcus.vance@flowpilot.internal",
+      "role": "ADMIN",
+      "workspaceId": "ws-prod-01",
+      "createdAt": "2026-10-13T05:26:47.184Z"
+    },
+    {
+      "id": "usr-viewer-01",
+      "name": "Elena Rostova",
+      "email": "elena.rostova@flowpilot.internal",
+      "role": "VIEWER",
+      "workspaceId": "ws-prod-01",
+      "createdAt": "2026-10-13T05:26:47.184Z"
+    },
+    {
+      "id": "usr-1791955637894",
+      "email": "alex@testcorp.internal",
+      "name": "Alex DevOps",
+      "role": "ADMIN",
+      "workspaceId": "ws-prod-01",
+      "passwordHash": "$2b$10$.3lELiG5RC1dzZoZhnOxVOhGQX4txk34Q6NZKdR6CsYOg5AXp8tbi",
+      "createdAt": "2026-10-14T05:27:17.894Z"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "ws-prod-01",
+      "name": "Production Core Workflows",
+      "slug": "prod-core",
+      "environment": "production",
+      "ownerId": "usr-admin-01",
+      "createdAt": "2026-10-13T05:26:47.184Z"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf-order-processing",
+      "workspaceId": "ws-prod-01",
+      "name": "E-Commerce Order Processing Pipeline",
+      "description": "End-to-end multi-step transaction workflow validating orders, reserving inventory, processing Stripe payments, issuing invoices, and delivering customer notifications.",
+      "version": 3,
+      "status": "ACTIVE",
+      "slaTargetMs": 4500,
+      "slaAvailabilityTarget": 99.95,
+      "tags": [
+        "e-commerce",
+        "critical-revenue",
+        "finance"
+      ],
+      "nodes": [
+        {
+          "id": "step-validate",
+          "type": "validate_data",
+          "name": "1. Validate Order",
+          "description": "Validates customer ID, SKU format, and cart totals.",
+          "dependencies": [],
+          "timeoutMs": 3000,
+          "maxRetries": 2,
+          "retryBackoffMs": 500,
+          "position": {
+            "x": 80,
+            "y": 160
+          },
+          "inputData": {
+            "schemaVersion": "v2.1",
+            "strictMode": true
+          }
+        },
+        {
+          "id": "step-inventory",
+          "type": "inventory_check",
+          "name": "2. Check Inventory",
+          "description": "Reserves warehouse stock via SAP Inventory API.",
+          "dependencies": [
+            "step-validate"
+          ],
+          "timeoutMs": 4000,
+          "maxRetries": 3,
+          "retryBackoffMs": 1000,
+          "dependencyService": "SAP Inventory Service",
+          "position": {
+            "x": 340,
+            "y": 160
+          }
+        },
+        {
+          "id": "step-payment",
+          "type": "payment_process",
+          "name": "3. Process Payment",
+          "description": "Charges payment gateway with idempotency key.",
+          "dependencies": [
+            "step-inventory"
+          ],
+          "timeoutMs": 5000,
+          "maxRetries": 2,
+          "retryBackoffMs": 2000,
+          "dependencyService": "Stripe Payment Gateway",
+          "position": {
+            "x": 600,
+            "y": 160
+          },
+          "inputData": {
+            "gateway": "stripe",
+            "currency": "USD",
+            "capture": true
+          }
+        },
+        {
+          "id": "step-invoice",
+          "type": "invoice_generate",
+          "name": "4. Generate Invoice",
+          "description": "Generates tax invoice and PDF via TaxJar / Billing API.",
+          "dependencies": [
+            "step-payment"
+          ],
+          "timeoutMs": 3500,
+          "maxRetries": 2,
+          "retryBackoffMs": 1000,
+          "dependencyService": "Billing Invoice API",
+          "position": {
+            "x": 860,
+            "y": 160
+          }
+        },
+        {
+          "id": "step-notification",
+          "type": "notification",
+          "name": "5. Send Order Confirmation",
+          "description": "Sends email & push notification to customer.",
+          "dependencies": [
+            "step-invoice"
+          ],
+          "timeoutMs": 3000,
+          "maxRetries": 3,
+          "retryBackoffMs": 500,
+          "isOptional": true,
+          "dependencyService": "SendGrid Email API",
+          "position": {
+            "x": 1120,
+            "y": 160
+          }
+        }
+      ],
+      "createdAt": "2026-10-13T05:26:47.184Z",
+      "updatedAt": "2026-10-14T03:26:47.184Z"
+    },
+    {
+      "id": "wf-analytics-sync",
+      "workspaceId": "ws-prod-01",
+      "name": "Snowflake Data Warehouse Batch Ingestion",
+      "description": "Daily ETL synchronization from application event logs into analytical dimensional warehouse.",
+      "version": 1,
+      "status": "ACTIVE",
+      "slaTargetMs": 18000,
+      "slaAvailabilityTarget": 99.5,
+      "tags": [
+        "data-lake",
+        "snowflake",
+        "scheduled"
+      ],
+      "nodes": [
+        {
+          "id": "step-sync-extract",
+          "type": "database_op",
+          "name": "1. Extract Events",
+          "dependencies": [],
+          "timeoutMs": 8000,
+          "maxRetries": 2,
+          "retryBackoffMs": 2000,
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "step-sync-transform",
+          "type": "transform_data",
+          "name": "2. Normalize JSON",
+          "dependencies": [
+            "step-sync-extract"
+          ],
+          "timeoutMs": 6000,
+          "maxRetries": 2,
+          "retryBackoffMs": 1000,
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "step-sync-load",
+          "type": "http_request",
+          "name": "3. Load to Snowflake",
+          "dependencies": [
+            "step-sync-transform"
+          ],
+          "timeoutMs": 10000,
+          "maxRetries": 3,
+          "retryBackoffMs": 3000,
+          "dependencyService": "Snowflake Ingestion API",
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        }
+      ],
+      "createdAt": "2026-10-13T05:26:47.184Z",
+      "updatedAt": "2026-10-13T05:26:47.184Z"
+    }
+  ],
+  "executions": [
+    {
+      "id": "exec-606857-83",
+      "workflowId": "wf-order-processing",
+      "workflowName": "E-Commerce Order Processing Pipeline",
+      "workflowVersion": 3,
+      "workspaceId": "ws-prod-01",
+      "status": "FAILED",
+      "startedAt": "2026-10-14T05:26:46.857Z",
+      "steps": [
+        {
+          "id": "step-exec-606857-83-step-validate",
+          "nodeId": "step-validate",
+          "nodeName": "1. Validate Order",
+          "nodeType": "validate_data",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T05:26:46.858Z",
+          "idempotencyKey": "idem-exec-606857-83-step-validate",
+          "completedAt": "2026-10-14T05:26:47.038Z",
+          "durationMs": 180,
+          "output": {
+            "valid": true,
+            "schema": "v2.1",
+            "itemsCount": 3,
+            "total": 249.99
+          }
+        },
+        {
+          "id": "step-exec-606857-83-step-inventory",
+          "nodeId": "step-inventory",
+          "nodeName": "2. Check Inventory",
+          "nodeType": "inventory_check",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 3,
+          "startedAt": "2026-10-14T05:26:47.039Z",
+          "idempotencyKey": "idem-exec-606857-83-step-inventory",
+          "completedAt": "2026-10-14T05:26:47.337Z",
+          "durationMs": 297,
+          "output": {
+            "reservationId": "res-23879",
+            "stockConfirmed": true
+          }
+        },
+        {
+          "id": "step-exec-606857-83-step-payment",
+          "nodeId": "step-payment",
+          "nodeName": "3. Process Payment",
+          "nodeType": "payment_process",
+          "status": "FAILED",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T05:26:47.338Z",
+          "idempotencyKey": "idem-exec-606857-83-step-payment",
+          "completedAt": "2026-10-14T05:26:47.940Z",
+          "error": {
+            "code": "ETIMEDOUT",
+            "message": "ETIMEDOUT: Upstream request timed out after 5000ms communicating with Stripe Payment Gateway (HTTP 504 Gateway Timeout).",
+            "category": "Network timeout",
+            "httpStatus": 504,
+            "stack": "Error: ETIMEDOUT: Upstream request timed out after 5000ms communicating with Stripe Payment Gateway (HTTP 504 Gateway Timeout).\n at executeStep (engine.ts:240)\n at processDAG (engine.ts:168)"
+          }
+        },
+        {
+          "id": "step-exec-606857-83-step-invoice",
+          "nodeId": "step-invoice",
+          "nodeName": "4. Generate Invoice",
+          "nodeType": "invoice_generate",
+          "status": "PENDING",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T05:26:46.857Z",
+          "idempotencyKey": "idem-exec-606857-83-step-invoice"
+        },
+        {
+          "id": "step-exec-606857-83-step-notification",
+          "nodeId": "step-notification",
+          "nodeName": "5. Send Order Confirmation",
+          "nodeType": "notification",
+          "status": "PENDING",
+          "retryCount": 0,
+          "maxRetries": 3,
+          "startedAt": "2026-10-14T05:26:46.857Z",
+          "idempotencyKey": "idem-exec-606857-83-step-notification"
+        }
+      ],
+      "triggerSource": "MANUAL",
+      "idempotencyKey": "idem-exec-606857-83",
+      "injectedFailure": {
+        "nodeId": "step-payment",
+        "failureType": "network_timeout",
+        "active": true
+      },
+      "currentStepId": "step-payment",
+      "completedAt": "2026-10-14T05:26:47.940Z",
+      "durationMs": 1083
+    },
+    {
+      "id": "exec-ord-792841",
+      "workflowId": "wf-order-processing",
+      "workflowName": "E-Commerce Order Processing Pipeline",
+      "workflowVersion": 3,
+      "workspaceId": "ws-prod-01",
+      "status": "FAILED",
+      "startedAt": "2026-10-14T04:26:47.184Z",
+      "completedAt": "2026-10-14T04:27:37.184Z",
+      "durationMs": 5120,
+      "currentStepId": "step-payment",
+      "triggerSource": "MANUAL",
+      "idempotencyKey": "idem-ord-792841-init",
+      "steps": [
+        {
+          "id": "step-exec-1",
+          "nodeId": "step-validate",
+          "nodeName": "1. Validate Order",
+          "nodeType": "validate_data",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T04:26:47.184Z",
+          "completedAt": "2026-10-14T04:26:49.184Z",
+          "durationMs": 240,
+          "output": {
+            "validated": true,
+            "itemsCount": 3,
+            "totalAmount": 249.99
+          }
+        },
+        {
+          "id": "step-exec-2",
+          "nodeId": "step-inventory",
+          "nodeName": "2. Check Inventory",
+          "nodeType": "inventory_check",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 3,
+          "startedAt": "2026-10-14T04:26:50.184Z",
+          "completedAt": "2026-10-14T04:26:55.184Z",
+          "durationMs": 510,
+          "output": {
+            "reservationId": "res-sap-90312",
+            "stockConfirmed": true
+          }
+        },
+        {
+          "id": "step-exec-3",
+          "nodeId": "step-payment",
+          "nodeName": "3. Process Payment",
+          "nodeType": "payment_process",
+          "status": "FAILED",
+          "retryCount": 2,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T04:26:56.184Z",
+          "completedAt": "2026-10-14T04:27:37.184Z",
+          "durationMs": 4370,
+          "error": {
+            "code": "ETIMEDOUT",
+            "message": "Upstream HTTP request timed out after 5000ms while negotiating charge token on Stripe Payment Gateway",
+            "category": "Network timeout",
+            "httpStatus": 504,
+            "stack": "GatewayTimeoutError: Connect Timeout to api.stripe.com:443\n at ClientRequest.emit (node:events:517:28)\n at Socket.socketErrorListener (node:_http_client:501:9)"
+          },
+          "idempotencyKey": "pay-tx-ord792841-k82"
+        },
+        {
+          "id": "step-exec-4",
+          "nodeId": "step-invoice",
+          "nodeName": "4. Generate Invoice",
+          "nodeType": "invoice_generate",
+          "status": "PENDING",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T04:27:37.184Z"
+        },
+        {
+          "id": "step-exec-5",
+          "nodeId": "step-notification",
+          "nodeName": "5. Send Order Confirmation",
+          "nodeType": "notification",
+          "status": "PENDING",
+          "retryCount": 0,
+          "maxRetries": 3,
+          "startedAt": "2026-10-14T04:27:37.184Z"
+        }
+      ]
+    },
+    {
+      "id": "exec-ord-792820",
+      "workflowId": "wf-order-processing",
+      "workflowName": "E-Commerce Order Processing Pipeline",
+      "workflowVersion": 3,
+      "workspaceId": "ws-prod-01",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-10-14T03:26:47.184Z",
+      "completedAt": "2026-10-14T03:26:50.684Z",
+      "durationMs": 3480,
+      "triggerSource": "SCHEDULED",
+      "idempotencyKey": "idem-ord-792820",
+      "steps": [
+        {
+          "id": "step-s1",
+          "nodeId": "step-validate",
+          "nodeName": "1. Validate Order",
+          "nodeType": "validate_data",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T03:26:47.184Z",
+          "completedAt": "2026-10-14T03:26:47.484Z",
+          "durationMs": 210
+        },
+        {
+          "id": "step-s2",
+          "nodeId": "step-inventory",
+          "nodeName": "2. Check Inventory",
+          "nodeType": "inventory_check",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 3,
+          "startedAt": "2026-10-14T03:26:47.584Z",
+          "completedAt": "2026-10-14T03:26:48.084Z",
+          "durationMs": 490
+        },
+        {
+          "id": "step-s3",
+          "nodeId": "step-payment",
+          "nodeName": "3. Process Payment",
+          "nodeType": "payment_process",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T03:26:48.184Z",
+          "completedAt": "2026-10-14T03:26:49.384Z",
+          "durationMs": 1210
+        },
+        {
+          "id": "step-s4",
+          "nodeId": "step-invoice",
+          "nodeName": "4. Generate Invoice",
+          "nodeType": "invoice_generate",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 2,
+          "startedAt": "2026-10-14T03:26:49.484Z",
+          "completedAt": "2026-10-14T03:26:50.184Z",
+          "durationMs": 720
+        },
+        {
+          "id": "step-s5",
+          "nodeId": "step-notification",
+          "nodeName": "5. Send Order Confirmation",
+          "nodeType": "notification",
+          "status": "SUCCEEDED",
+          "retryCount": 0,
+          "maxRetries": 3,
+          "startedAt": "2026-10-14T03:26:50.284Z",
+          "completedAt": "2026-10-14T03:26:50.684Z",
+          "durationMs": 400
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-1",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-1",
+      "nodeId": "step-validate",
+      "level": "INFO",
+      "message": "Order validation payload received. Total: $249.99 for user_id: 88412.",
+      "timestamp": "2026-10-14T04:26:47.184Z"
+    },
+    {
+      "id": "log-2",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-1",
+      "nodeId": "step-validate",
+      "level": "INFO",
+      "message": "Order schema validated successfully against strict JSON spec.",
+      "timestamp": "2026-10-14T04:26:48.684Z"
+    },
+    {
+      "id": "log-3",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-2",
+      "nodeId": "step-inventory",
+      "level": "INFO",
+      "message": "Acquired distributed lock for SKU-A109, SKU-B440. Reserving 3 units in SAP ERP.",
+      "timestamp": "2026-10-14T04:26:51.184Z"
+    },
+    {
+      "id": "log-4",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-2",
+      "nodeId": "step-inventory",
+      "level": "INFO",
+      "message": "Stock reservation verified. Reservation ID: res-sap-90312.",
+      "timestamp": "2026-10-14T04:26:54.684Z"
+    },
+    {
+      "id": "log-5",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-3",
+      "nodeId": "step-payment",
+      "level": "INFO",
+      "message": "Initiating Stripe Payment Gateway charge with idempotency key pay-tx-ord792841-k82.",
+      "timestamp": "2026-10-14T04:26:57.184Z"
+    },
+    {
+      "id": "log-6",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-3",
+      "nodeId": "step-payment",
+      "level": "WARN",
+      "message": "Payment attempt 1 timed out after 2000ms. Retrying with backoff (retry 1/2)...",
+      "timestamp": "2026-10-14T04:27:17.184Z"
+    },
+    {
+      "id": "log-7",
+      "executionId": "exec-ord-792841",
+      "stepExecutionId": "step-exec-3",
+      "nodeId": "step-payment",
+      "level": "ERROR",
+      "message": "Fatal: ETIMEDOUT Connect Timeout while waiting for TLS handshake with api.stripe.com:443. HTTP 504 Gateway Timeout returned from regional edge proxy.",
+      "timestamp": "2026-10-14T04:27:37.184Z",
+      "metadata": {
+        "errorCategory": "Network timeout",
+        "httpStatus": 504,
+        "gateway": "stripe",
+        "idempotencyKey": "pay-tx-ord792841-k82"
+      }
+    },
+    {
+      "id": "log-1791955607338-255",
+      "executionId": "exec-606857-83",
+      "stepExecutionId": "step-exec-606857-83-step-inventory",
+      "nodeId": "step-inventory",
+      "level": "INFO",
+      "message": "Step \"2. Check Inventory\" completed successfully in 297ms.",
+      "timestamp": "2026-10-14T05:26:47.338Z"
+    },
+    {
+      "id": "log-1791955607338-38",
+      "executionId": "exec-606857-83",
+      "stepExecutionId": "step-exec-606857-83-step-payment",
+      "nodeId": "step-payment",
+      "level": "INFO",
+      "message": "Executing node \"3. Process Payment\" (payment_process) [Idempotency: idem-exec-606857-83-step-payment].",
+      "timestamp": "2026-10-14T05:26:47.338Z"
+    },
+    {
+      "id": "log-1791955607941-919",
+      "executionId": "exec-606857-83",
+      "stepExecutionId": "step-exec-606857-83-step-payment",
+      "nodeId": "step-payment",
+      "level": "ERROR",
+      "message": "Fatal error in step \"3. Process Payment\": ETIMEDOUT: Upstream request timed out after 5000ms communicating with Stripe Payment Gateway (HTTP 504 Gateway Timeout).",
+      "timestamp": "2026-10-14T05:26:47.941Z",
+      "metadata": {
+        "category": "Network timeout",
+        "httpStatus": 504
+      }
+    },
+    {
+      "id": "log-1791955607941-199",
+      "executionId": "exec-606857-83",
+      "stepExecutionId": "step-exec-606857-83-step-payment",
+      "nodeId": "step-payment",
+      "level": "INFO",
+      "message": "ML Failure Classifier predicted: \"Network timeout\" (Confidence: 100.0%, Model: fp-log-classifier-v2.4) in 0.12ms.",
+      "timestamp": "2026-10-14T05:26:47.941Z"
+    }
+  ],
+  "incidents": [
+    {
+      "id": "inc-07942",
+      "workspaceId": "ws-prod-01",
+      "workflowId": "wf-order-processing",
+      "workflowName": "E-Commerce Order Processing Pipeline",
+      "executionId": "exec-606857-83",
+      "failedStepId": "step-payment",
+      "failedStepName": "3. Process Payment",
+      "severity": "CRITICAL",
+      "status": "AWAITING_APPROVAL",
+      "errorCategory": "Network timeout",
+      "affectedDependency": "Stripe Payment Gateway",
+      "firstOccurrence": "2026-10-14T05:26:47.940Z",
+      "latestOccurrence": "2026-10-14T05:26:47.940Z",
+      "occurrenceCount": 1,
+      "correlationFingerprint": "wf-order-processing:step-payment:Network timeout:504",
+      "rootCauseHypothesis": "Transient connection timeout occurred during communication with Stripe Payment Gateway. Socket connection timed out before ACK was received.",
+      "evidence": [
+        "Step \"3. Process Payment\" failed with HTTP status 504.",
+        "ML Model (fp-log-classifier-v2.4) classified as Network timeout (100.0% confidence).",
+        "Log excerpt: \"ETIMEDOUT: Upstream request timed out after 5000ms communicating with Stripe Payment Gateway (HTTP 504 Gateway Timeout).\""
+      ],
+      "createdAt": "2026-10-14T05:26:47.940Z",
+      "updatedAt": "2026-10-14T05:26:47.940Z",
+      "investigationId": "inv-1791955607942-376",
+      "recoveryActionId": "rec-act-8055"
+    },
+    {
+      "id": "inc-94821",
+      "workspaceId": "ws-prod-01",
+      "workflowId": "wf-order-processing",
+      "workflowName": "E-Commerce Order Processing Pipeline",
+      "executionId": "exec-ord-792841",
+      "failedStepId": "step-payment",
+      "failedStepName": "3. Process Payment",
+      "severity": "CRITICAL",
+      "status": "AWAITING_APPROVAL",
+      "errorCategory": "Network timeout",
+      "affectedDependency": "Stripe Payment Gateway",
+      "firstOccurrence": "2026-10-14T04:26:47.184Z",
+      "latestOccurrence": "2026-10-14T04:26:47.184Z",
+      "occurrenceCount": 1,
+      "correlationFingerprint": "wf-order-processing:step-payment:ETIMEDOUT:504",
+      "rootCauseHypothesis": "Stripe Payment Gateway experienced an upstream regional gateway timeout (HTTP 504) during high peak traffic. Previous transaction verification confirmed no duplicate charge occurred on the cardholder account.",
+      "evidence": [
+        "Execution log indicates HTTP 504 Gateway Timeout on api.stripe.com:443.",
+        "Stripe Payment Gateway circuit breaker tripped to HALF_OPEN state (latency spiked to 3,420ms).",
+        "Idempotency key pay-tx-ord792841-k82 verified in pending ledger without settlement."
+      ],
+      "investigationId": "inv-89102",
+      "recoveryActionId": "rec-act-4410",
+      "assignedTo": "usr-operator-01",
+      "assignedToName": "Sarah Chen",
+      "createdAt": "2026-10-14T04:26:47.184Z",
+      "updatedAt": "2026-10-14T04:26:47.184Z"
+    }
+  ],
+  "investigations": [
+    {
+      "id": "inv-1791955607942-376",
+      "incidentId": "inc-07942",
+      "executionId": "exec-606857-83",
+      "workflowId": "wf-order-processing",
+      "model": "Rule-Based SRE Engine (Deterministic Fallback)",
+      "usedFallback": true,
+      "incidentSummary": "Investigation of Network timeout on step \"3. Process Payment\"",
+      "probableRootCause": "Transient connection timeout occurred during communication with Stripe Payment Gateway. Socket connection timed out before ACK was received.",
+      "observedEvidence": [
+        "HTTP status 504 / socket timeout detected in step execution logs.",
+        "Preceding steps completed successfully without state mutation corruption."
+      ],
+      "alternativeExplanations": [
+        "Intermittent VPC egress gateway saturation",
+        "Provider maintenance or scheduled rolling deployment"
+      ],
+      "failureCategory": "Network timeout",
+      "impactAssessment": "Order workflow blocked at step \"3. Process Payment\". SLA error budget burn is active.",
+      "recommendedRecoveryAction": "RESUME_STEP",
+      "recoveryPrerequisites": [
+        "Check upstream system status",
+        "Verify transaction status on remote service with idempotency key.",
+        "Ensure circuit breaker latency is below 1,000ms."
+      ],
+      "expectedOutcome": "Workflow recovers successfully, continuing execution to subsequent nodes with full idempotency guarantee.",
+      "riskLevel": "LOW",
+      "confidenceScore": 0.93,
+      "confidenceExplanation": "Computed deterministically from error signature, HTTP status code, and step idempotency properties.",
+      "humanApprovalRequired": true,
+      "tokensUsed": 0,
+      "estimatedCostUsd": 0,
+      "createdAt": "2026-10-14T05:26:48.055Z"
+    },
+    {
+      "id": "inv-89102",
+      "incidentId": "inc-94821",
+      "executionId": "exec-ord-792841",
+      "workflowId": "wf-order-processing",
+      "model": "gemini-3.8-flash",
+      "usedFallback": false,
+      "incidentSummary": "Transient HTTP 504 Network Timeout on step \"3. Process Payment\" caused execution halt in E-Commerce Order Processing Pipeline.",
+      "probableRootCause": "The Stripe edge proxy timed out after 5,000ms while waiting for payment processor acknowledgment. Correlation with historical incidents reveals a 96% match with transient cloud network blips.",
+      "observedEvidence": [
+        "Error code ETIMEDOUT with HTTP 504 status code.",
+        "No authorization confirmation payload registered in payment records.",
+        "Preceding steps \"Validate Order\" and \"Check Inventory\" executed successfully with verified state."
+      ],
+      "alternativeExplanations": [
+        "Network throttling due to temporary rate-limiting headers.",
+        "DNS resolution latency in local VPC egress gateway."
+      ],
+      "failureCategory": "Network timeout",
+      "impactAssessment": "Order #792841 with $249.99 total value is blocked. Inventory reservation expires in 25 minutes unless resumed.",
+      "recommendedRecoveryAction": "RESUME_STEP",
+      "recoveryPrerequisites": [
+        "Verify zero charges posted using idempotency key pay-tx-ord792841-k82.",
+        "Check circuit breaker health on Stripe Payment Gateway.",
+        "Human operator approval required before re-triggering charge sequence."
+      ],
+      "expectedOutcome": "Workflow resumes execution directly from step 3 (\"Process Payment\"), executes invoice generation and delivers confirmation without re-running inventory check.",
+      "riskLevel": "LOW",
+      "confidenceScore": 0.94,
+      "confidenceExplanation": "High confidence based on verified idempotency protection and transient nature of HTTP 504 timeouts.",
+      "humanApprovalRequired": true,
+      "tokensUsed": 684,
+      "estimatedCostUsd": 0.00018,
+      "createdAt": "2026-10-14T04:26:47.184Z"
+    }
+  ],
+  "recoveryActions": [
+    {
+      "id": "rec-act-8055",
+      "incidentId": "inc-07942",
+      "executionId": "exec-606857-83",
+      "workflowId": "wf-order-processing",
+      "stepId": "step-payment",
+      "actionType": "RESUME_STEP",
+      "description": "Safely resume step \"3. Process Payment\" using idempotency key \"idem-exec-606857-83-step-payment\".",
+      "whyRecommended": "Transient connection timeout occurred during communication with Stripe Payment Gateway. Socket connection timed out before ACK was received.",
+      "supportingEvidence": [
+        "HTTP status 504 / socket timeout detected in step execution logs.",
+        "Preceding steps completed successfully without state mutation corruption."
+      ],
+      "expectedBenefit": "Workflow recovers successfully, continuing execution to subsequent nodes with full idempotency guarantee.",
+      "potentialRisk": "Low risk: Idempotent replay prevents duplicate actions.",
+      "riskLevel": "LOW",
+      "isSafeToAutoExecute": false,
+      "approvalStatus": "PENDING",
+      "approvalExpiresAt": "2026-10-14T07:26:48.055Z",
+      "idempotencyKey": "idem-rec-exec-606857-83",
+      "dryRunResult": {
+        "safe": true,
+        "simulatedOutcome": "Dry-run preview: Verified preceding step outputs exist. Remote endpoint ready. Zero duplicate mutations detected.",
+        "warnings": [],
+        "precheckPassed": true
+      },
+      "createdAt": "2026-10-14T05:26:48.055Z"
+    },
+    {
+      "id": "rec-act-4410",
+      "incidentId": "inc-94821",
+      "executionId": "exec-ord-792841",
+      "workflowId": "wf-order-processing",
+      "stepId": "step-payment",
+      "actionType": "RESUME_STEP",
+      "description": "Safely resume workflow execution from failed payment step using verified idempotency key pay-tx-ord792841-k82.",
+      "whyRecommended": "Payment gateway connectivity has stabilized. Inventory reservation is intact. Idempotency guarantees zero duplicate billing.",
+      "supportingEvidence": [
+        "Stripe Payment Gateway latency returned below 350ms.",
+        "Ledger inquiry verified 0 transactions settled under key pay-tx-ord792841-k82."
+      ],
+      "expectedBenefit": "Recovers blocked $249.99 transaction without requiring customer cart reentry.",
+      "potentialRisk": "If idempotency key were corrupted, duplicate charge could occur (mitigated by key hashing).",
+      "riskLevel": "LOW",
+      "isSafeToAutoExecute": false,
+      "approvalStatus": "PENDING",
+      "approvalExpiresAt": "2026-10-14T07:26:47.184Z",
+      "idempotencyKey": "idem-rec-792841-rev1",
+      "dryRunResult": {
+        "safe": true,
+        "simulatedOutcome": "Preflight verification passed: Inventory lock active, Stripe ping 142ms, Idempotency token valid.",
+        "warnings": [],
+        "precheckPassed": true
+      },
+      "createdAt": "2026-10-14T04:26:47.184Z"
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "dep-stripe",
+      "name": "Stripe Payment Gateway",
+      "serviceType": "Payment Processor",
+      "healthStatus": "UNHEALTHY",
+      "circuitBreakerState": "OPEN",
+      "responseLatencyMs": 3420,
+      "errorRatePercentage": 35,
+      "failureThreshold": 5,
+      "failureCount": 5,
+      "lastSuccessfulCheck": "2026-10-14T05:24:47.184Z",
+      "lastFailureAt": "2026-10-14T05:26:47.941Z",
+      "recentFailures": [
+        {
+          "timestamp": "2026-10-14T05:26:47.941Z",
+          "reason": "ETIMEDOUT: Upstream request timed out after 5000ms communicating with Stripe Payment Gateway (HTTP 504 Gateway Timeout)."
+        },
+        {
+          "timestamp": "2026-10-14T04:26:47.184Z",
+          "reason": "HTTPS 504 Gateway Timeout (upstream provider load)"
+        },
+        {
+          "timestamp": "2026-10-14T03:26:47.184Z",
+          "reason": "TCP connection reset by peer during TLS handshake"
+        }
+      ],
+      "cooldownPeriodMs": 60000,
+      "halfOpenMaxProbes": 3
+    },
+    {
+      "id": "dep-sap",
+      "name": "SAP Inventory Service",
+      "serviceType": "ERP Inventory",
+      "healthStatus": "HEALTHY",
+      "circuitBreakerState": "CLOSED",
+      "responseLatencyMs": 173,
+      "errorRatePercentage": 0.2,
+      "failureThreshold": 5,
+      "failureCount": 0,
+      "lastSuccessfulCheck": "2026-10-14T05:26:47.337Z",
+      "recentFailures": [],
+      "cooldownPeriodMs": 45000,
+      "halfOpenMaxProbes": 3
+    },
+    {
+      "id": "dep-taxjar",
+      "name": "Billing Invoice API",
+      "serviceType": "Tax & Compliance",
+      "healthStatus": "HEALTHY",
+      "circuitBreakerState": "CLOSED",
+      "responseLatencyMs": 280,
+      "errorRatePercentage": 0.5,
+      "failureThreshold": 4,
+      "failureCount": 0,
+      "lastSuccessfulCheck": "2026-10-14T05:26:47.184Z",
+      "recentFailures": [],
+      "cooldownPeriodMs": 30000,
+      "halfOpenMaxProbes": 2
+    },
+    {
+      "id": "dep-sendgrid",
+      "name": "SendGrid Email API",
+      "serviceType": "Messaging",
+      "healthStatus": "HEALTHY",
+      "circuitBreakerState": "CLOSED",
+      "responseLatencyMs": 195,
+      "errorRatePercentage": 1.1,
+      "failureThreshold": 5,
+      "failureCount": 1,
+      "lastSuccessfulCheck": "2026-10-14T05:26:47.184Z",
+      "recentFailures": [],
+      "cooldownPeriodMs": 30000,
+      "halfOpenMaxProbes": 3
+    },
+    {
+      "id": "dep-snowflake",
+      "name": "Snowflake Ingestion API",
+      "serviceType": "Analytics Warehouse",
+      "healthStatus": "HEALTHY",
+      "circuitBreakerState": "CLOSED",
+      "responseLatencyMs": 820,
+      "errorRatePercentage": 0.8,
+      "failureThreshold": 3,
+      "failureCount": 0,
+      "lastSuccessfulCheck": "2026-10-14T05:26:47.184Z",
+      "recentFailures": [],
+      "cooldownPeriodMs": 60000,
+      "halfOpenMaxProbes": 2
+    }
+  ],
+  "slaPolicies": [
+    {
+      "id": "sla-order-pipeline",
+      "workflowId": "wf-order-processing",
+      "workflowName": "E-Commerce Order Processing Pipeline",
+      "targetAvailabilityPercent": 99.95,
+      "currentAvailabilityPercent": 99.88,
+      "maxExecutionDurationMs": 4500,
+      "p95DurationMs": 3820,
+      "p99DurationMs": 4910,
+      "errorBudgetMinutes": 43.2,
+      "errorBudgetBurnedMinutes": 8.4,
+      "mttrMinutes": 4.8,
+      "mttdMinutes": 0.9,
+      "breachCount": 1,
+      "lastBreachAt": "2026-10-14T04:26:47.184Z"
+    },
+    {
+      "id": "sla-snowflake-batch",
+      "workflowId": "wf-analytics-sync",
+      "workflowName": "Snowflake Data Warehouse Batch Ingestion",
+      "targetAvailabilityPercent": 99.5,
+      "currentAvailabilityPercent": 99.92,
+      "maxExecutionDurationMs": 18000,
+      "p95DurationMs": 14200,
+      "p99DurationMs": 16800,
+      "errorBudgetMinutes": 216,
+      "errorBudgetBurnedMinutes": 12,
+      "mttrMinutes": 8.5,
+      "mttdMinutes": 1.2,
+      "breachCount": 0
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "audit-1791955641598",
+      "workspaceId": "ws-prod-01",
+      "actorId": "usr-1791955637894",
+      "actorName": "Alex DevOps",
+      "actorRole": "ADMIN",
+      "action": "USER_LOGGED_IN",
+      "targetResource": "User",
+      "resourceId": "usr-1791955637894",
+      "outcome": "SUCCESS",
+      "summary": "User logged in: Alex DevOps (alex@testcorp.internal).",
+      "timestamp": "2026-10-14T05:27:21.598Z"
+    },
+    {
+      "id": "audit-1791955637895",
+      "workspaceId": "ws-prod-01",
+      "actorId": "usr-1791955637894",
+      "actorName": "Alex DevOps",
+      "actorRole": "ADMIN",
+      "action": "USER_REGISTERED",
+      "targetResource": "User",
+      "resourceId": "usr-1791955637894",
+      "outcome": "SUCCESS",
+      "summary": "New user account created: Alex DevOps (alex@testcorp.internal) with role ADMIN.",
+      "timestamp": "2026-10-14T05:27:17.895Z"
+    },
+    {
+      "id": "audit-1",
+      "workspaceId": "ws-prod-01",
+      "actorId": "usr-operator-01",
+      "actorName": "Sarah Chen",
+      "actorRole": "OPERATOR",
+      "action": "WORKFLOW_EXECUTION_TRIGGERED",
+      "targetResource": "WorkflowExecution",
+      "resourceId": "exec-ord-792841",
+      "outcome": "SUCCESS",
+      "summary": "Operator Sarah Chen triggered execution of E-Commerce Order Processing Pipeline.",
+      "timestamp": "2026-10-14T04:26:47.184Z"
+    },
+    {
+      "id": "audit-2",
+      "workspaceId": "ws-prod-01",
+      "actorId": "system-agent",
+      "actorName": "FlowPilot Incident Engine",
+      "actorRole": "ADMIN",
+      "action": "INCIDENT_CREATED",
+      "targetResource": "Incident",
+      "resourceId": "inc-94821",
+      "outcome": "SUCCESS",
+      "summary": "Incident #94821 auto-created for ETIMEDOUT failure in step 3 (Process Payment).",
+      "timestamp": "2026-10-14T04:26:47.184Z"
+    },
+    {
+      "id": "audit-3",
+      "workspaceId": "ws-prod-01",
+      "actorId": "gemini-agent",
+      "actorName": "Gemini 3.8 Flash Engine",
+      "actorRole": "ADMIN",
+      "action": "AI_INVESTIGATION_COMPLETED",
+      "targetResource": "Investigation",
+      "resourceId": "inv-89102",
+      "outcome": "SUCCESS",
+      "summary": "Root-cause analysis completed. Identified 94% confidence transient network timeout.",
+      "timestamp": "2026-10-14T04:26:47.184Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-appr-rec-act-8055",
+      "workspaceId": "ws-prod-01",
+      "title": "Recovery Approval Required",
+      "message": "Incident inc-07942: AI proposed RESUME_STEP for step \"3. Process Payment\".",
+      "severity": "WARNING",
+      "type": "RECOVERY_APPROVAL",
+      "link": "/recovery",
+      "isRead": false,
+      "createdAt": "2026-10-14T05:26:48.058Z"
+    },
+    {
+      "id": "notif-inc-07942",
+      "workspaceId": "ws-prod-01",
+      "title": "Workflow Failure: E-Commerce Order Processing Pipeline",
+      "message": "Step \"3. Process Payment\" failed with Network timeout. Incident inc-07942 opened.",
+      "severity": "CRITICAL",
+      "type": "INCIDENT",
+      "link": "/incidents/inc-07942",
+      "isRead": false,
+      "createdAt": "2026-10-14T05:26:47.940Z"
+    },
+    {
+      "id": "notif-cb-1791955607941",
+      "workspaceId": "ws-prod-01",
+      "title": "Circuit Breaker Tripped: Stripe Payment Gateway",
+      "message": "Failure threshold reached (5/5). Circuit breaker is now OPEN.",
+      "severity": "CRITICAL",
+      "type": "DEPENDENCY",
+      "link": "/dependencies",
+      "isRead": false,
+      "createdAt": "2026-10-14T05:26:47.941Z"
+    },
+    {
+      "id": "notif-1",
+      "workspaceId": "ws-prod-01",
+      "title": "Critical Incident Opened",
+      "message": "Workflow \"E-Commerce Order Processing Pipeline\" failed on step 3 (Process Payment) with HTTP 504.",
+      "severity": "CRITICAL",
+      "type": "INCIDENT",
+      "link": "/incidents/inc-94821",
+      "isRead": false,
+      "createdAt": "2026-10-14T04:26:47.184Z"
+    },
+    {
+      "id": "notif-2",
+      "workspaceId": "ws-prod-01",
+      "title": "Recovery Approval Pending",
+      "message": "AI-recommended recovery action (Resume Step with Idempotency) requires operator sign-off.",
+      "severity": "WARNING",
+      "type": "RECOVERY_APPROVAL",
+      "link": "/recovery",
+      "isRead": false,
+      "createdAt": "2026-10-14T04:26:47.184Z"
+    },
+    {
+      "id": "notif-3",
+      "workspaceId": "ws-prod-01",
+      "title": "SLA Burn Warning",
+      "message": "Order Processing Pipeline has consumed 19.4% of monthly error budget.",
+      "severity": "WARNING",
+      "type": "SLA_BREACH",
+      "link": "/sla",
+      "isRead": true,
+      "createdAt": "2026-10-14T03:26:47.184Z"
+    }
+  ],
+  "inspectedProjects": [
+    {
+      "id": "insp-1791955633701",
+      "url": "https://httpbin.org/get",
+      "hostname": "httpbin.org",
+      "status": 200,
+      "statusText": "OK",
+      "totalLatencyMs": 923,
+      "dnsTimeMs": 60,
+      "tcpTimeMs": 80,
+      "ttfbMs": 921,
+      "downloadTimeMs": 8,
+      "contentLengthBytes": 414,
+      "contentType": "application/json",
+      "isLagging": true,
+      "laggingPhase": "SERVER_TTFB",
+      "laggingSeverity": "WARNING",
+      "bottleneckSummary": "Moderate Pipeline Lag: Response time 923ms is elevated above optimal threshold (400ms). Primary delay is server-side execution (921ms).",
+      "recommendations": [
+        "Enable Gzip/Brotli response compression on API responses.",
+        "Review payload size and serialize only required attributes."
+      ],
+      "inspectedAt": "2026-10-14T05:27:13.701Z"
+    },
+    {
+      "id": "insp-1791955628863",
+      "url": "https://api.acmestore.internal/checkout/v2",
+      "hostname": "api.acmestore.internal",
+      "status": 504,
+      "statusText": "fetch failed",
+      "totalLatencyMs": 25,
+      "dnsTimeMs": 120,
+      "tcpTimeMs": 180,
+      "ttfbMs": 25,
+      "downloadTimeMs": 0,
+      "contentLengthBytes": 0,
+      "contentType": "text/html",
+      "isLagging": true,
+      "laggingPhase": "SERVER_TTFB",
+      "laggingSeverity": "CRITICAL",
+      "bottleneckSummary": "HTTP 504 (fetch failed): Server-side crash or gateway timeout halted execution. Workflow pipeline is lagging at upstream handler.",
+      "recommendations": [
+        "Inspect server application error logs and restart affected container.",
+        "Verify database connection pool limits and upstream API credentials."
+      ],
+      "inspectedAt": "2026-10-14T05:27:08.863Z"
+    }
+  ]
+}

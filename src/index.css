@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #070b13;
+    color: #f1f5f9;
+    min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  body.theme-white,
+  html.theme-white body {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* White Theme Background & Surface Styling */
+.theme-white .bg-\[\#070b13\] {
+  background-color: #f8fafc !important;
+}
+
+.theme-white .bg-\[\#090d16\] {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-white .bg-\[\#0b0f19\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-white .bg-\[\#0e1424\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05) !important;
+}
+
+.theme-white .bg-slate-900,
+.theme-white .bg-slate-900\/40,
+.theme-white .bg-slate-900\/50,
+.theme-white .bg-slate-900\/60,
+.theme-white .bg-slate-900\/80,
+.theme-white .bg-slate-900\/90,
+.theme-white .bg-slate-950,
+.theme-white .bg-slate-950\/30,
+.theme-white .bg-slate-950\/40,
+.theme-white .bg-slate-950\/60,
+.theme-white .bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-white .text-white {
+  color: #0f172a !important;
+}
+
+.theme-white .text-slate-100,
+.theme-white .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.theme-white .text-slate-300 {
+  color: #334155 !important;
+}
+
+.theme-white .text-slate-400 {
+  color: #475569 !important;
+}
+
+.theme-white .text-slate-500 {
+  color: #64748b !important;
+}
+
+.theme-white .border-slate-800,
+.theme-white .border-slate-800\/60,
+.theme-white .border-slate-800\/70,
+.theme-white .border-slate-800\/80,
+.theme-white .border-slate-700,
+.theme-white .border-slate-700\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-white input:not([type="checkbox"]):not([type="radio"]),
+.theme-white textarea,
+.theme-white select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-white input::placeholder,
+.theme-white textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Custom scrollbars for enterprise data views */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1322;
+}
+.theme-white ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+.theme-white ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+.theme-white ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

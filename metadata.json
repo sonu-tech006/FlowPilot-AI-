@@ -1,0 +1,6 @@
+{
+  "name": "FlowPilot AI",
+  "description": "Autonomous workflow monitoring, AI failure investigation, intelligent recovery, and reliability analytics platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  flowpilot-web-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/flowpilot
+      - REDIS_URL=redis://redis:6379
+      - ML_SERVICE_URL=http://ml-service:8000
+      - JWT_SECRET=flowpilot-super-secure-jwt-secret-key-32chars
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - mongo
+      - redis
+      - ml-service
+    restart: unless-stopped
+
+  ml-service:
+    build:
+      context: ./services/ml-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - WORKERS=2
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:
