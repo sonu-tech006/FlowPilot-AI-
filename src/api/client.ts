@@ -135,7 +135,31 @@ class ApiClient {
   }
 
   public getDbHealth() {
-    return this.request<{ status: string; databaseType: string; isConnected: boolean; message: string }>('/health/db');
+    return this.request<{
+      status: string;
+      databaseType: string;
+      isConnected: boolean;
+      isMongoConnected: boolean;
+      mongoUriConfigured: boolean;
+      mongoConnectionError: string | null;
+      userCount: number;
+      workflowCount: number;
+      inspectedUrlCount: number;
+      timestamp: string;
+    }>('/health/db');
+  }
+
+  public reconnectDb() {
+    return this.request<{
+      status: string;
+      databaseType: string;
+      isConnected: boolean;
+      isMongoConnected: boolean;
+      mongoUriConfigured: boolean;
+      mongoConnectionError: string | null;
+      userCount: number;
+      workflowCount: number;
+    }>('/health/db/reconnect', { method: 'POST' });
   }
 
 

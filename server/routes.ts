@@ -51,6 +51,16 @@ router.get('/health/db', (req: Request, res: Response) => {
   res.json(status);
 });
 
+router.post('/health/db/reconnect', async (req: Request, res: Response) => {
+  const { uri } = req.body || {};
+  if (uri && typeof uri === 'string' && uri.trim()) {
+    db.setCustomMongoUri(uri.trim());
+  }
+  await db.initMongo();
+  const status = db.getDbStatus();
+  res.json(status);
+});
+
 /* ==========================================================================
    AUTHENTICATION ROUTES
    ========================================================================== */

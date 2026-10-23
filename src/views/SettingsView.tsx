@@ -1,13 +1,55 @@
-import React from 'react';
-import { Settings, Database, Cpu, Sparkles, RotateCcw, CheckCircle2, ShieldCheck, Sun, Moon, Palette, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Settings,
+  Database,
+  Cpu,
+  Sparkles,
+  RotateCcw,
+  CheckCircle2,
+  ShieldCheck,
+  Sun,
+  Moon,
+  Palette,
+  Check,
+  RefreshCw,
+  AlertCircle,
+  ExternalLink,
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { api } from '../api/client';
 
 interface SettingsViewProps {
   onResetDemo: () => void;
+  dbHealth?: any;
+  onRefreshDbHealth?: () => void;
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onResetDemo }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ onResetDemo, dbHealth, onRefreshDbHealth }) => {
   const { theme, setTheme, toggleTheme, isWhite } = useTheme();
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectResult, setReconnectResult] = useState<string | null>(null);
+
+  const handleTestMongoConnection = async () => {
+    setIsReconnecting(true);
+    setReconnectResult(null);
+    try {
+      const res = await api.reconnectDb();
+      if (res.isMongoConnected) {
+        setReconnectResult('Successfully connected and synchronized with MongoDB Atlas!');
+      } else {
+        setReconnectResult(
+          res.mongoConnectionError
+            ? `Connection attempt rejected: ${res.mongoConnectionError}`
+            : 'Could not connect to MongoDB Atlas. Ensure 0.0.0.0/0 is whitelisted in Atlas Network Access.'
+        );
+      }
+      if (onRefreshDbHealth) onRefreshDbHealth();
+    } catch (err: any) {
+      setReconnectResult(`Error: ${err.message}`);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto text-xs">
@@ -171,24 +213,118 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onResetDemo }) => {
       {/* Grid of System Connections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* MongoDB Persistence Card */}
-        <div className="bg-[#0e1424] border border-slate-800 rounded-lg p-5 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="font-bold text-slate-200 flex items-center gap-2">
+        <div className={`border rounded-lg p-5 space-y-3 transition-colors ${
+          isWhite ? 'bg-white border-slate-200' : 'bg-[#0e1424] border-slate-800'
+        }`}>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+            <span className={`font-bold flex items-center gap-2 ${isWhite ? 'text-slate-800' : 'text-slate-200'}`}>
               <Database className="w-4 h-4 text-emerald-400" />
               <span>MongoDB Document Storage</span>
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-1.5 py-0.5 rounded">
-              CONNECTED
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold border ${
+              dbHealth?.isMongoConnected
+                ? 'text-emerald-400 bg-emerald-950/60 border-emerald-800'
+                : 'text-amber-400 bg-amber-950/60 border-amber-800'
+            }`}>
+              {dbHealth?.isMongoConnected ? 'CONNECTED & SYNCED' : 'LOCAL FALLBACK ACTIVE'}
             </span>
           </div>
-          <p className="text-slate-400 text-[11px]">
-            Authoritative persistent data store with Mongoose schemas for workflows, executions, incidents, investigations, and audit logs.
+          <p className="text-slate-400 text-[11px] leading-relaxed">
+            {dbHealth?.isMongoConnected
+              ? 'Connected to remote MongoDB Atlas cluster. Data collections are actively synchronized with Cloud Atlas.'
+              : 'FlowPilot embedded persistent document store is active and saving all data to .flowpilot-data/db.json. MongoDB Atlas URI is configured, but remote handshake is awaiting Atlas IP whitelist.'}
           </p>
-          <div className="bg-[#090d16] p-2.5 rounded font-mono text-[11px] text-slate-400 space-y-1">
-            <div>Engine: Mongoose Document Engine</div>
-            <div>Storage Path: .flowpilot-data/db.json</div>
-            <div>Collections: 20 active collections</div>
+
+          <div className={`p-2.5 rounded font-mono text-[11px] space-y-1 ${
+            isWhite ? 'bg-slate-100 text-slate-700' : 'bg-[#090d16] text-slate-400'
+          }`}>
+            <div className="flex justify-between">
+              <span>Active Engine:</span>
+              <span className="font-semibold text-sky-400">
+                {dbHealth?.isMongoConnected ? 'MongoDB Atlas Cluster0' : 'Local Document Database'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Local Storage Path:</span>
+              <span className="text-slate-300">.flowpilot-data/db.json</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Workspaces & Workflows:</span>
+              <span className="text-slate-300">
+                {dbHealth?.workflowCount || 2} workflows • {dbHealth?.userCount || 4} users
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Atlas Remote Host:</span>
+              <span className="text-slate-300 truncate max-w-[200px]" title="ac-4x4yesk-shard-00-*.qzv23w2.mongodb.net">
+                qzv23w2.mongodb.net
+              </span>
+            </div>
           </div>
+
+          {!dbHealth?.isMongoConnected && (
+            <div className="p-3 bg-amber-950/30 border border-amber-800/60 rounded-lg text-[11px] space-y-2">
+              <div className="flex items-start gap-2 text-amber-300">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div className="space-y-1">
+                  <div className="font-semibold text-white">
+                    {dbHealth?.mongoConnectionError?.includes('bad auth')
+                      ? 'Atlas Network Connected — Authentication Check Needed'
+                      : 'Why is Atlas in Local Fallback mode?'}
+                  </div>
+                  <div className="text-slate-300 leading-normal">
+                    {dbHealth?.mongoConnectionError?.includes('bad auth') ? (
+                      <>
+                        The Atlas network firewall and TLS handshake succeeded, but MongoDB Atlas reported:{' '}
+                        <code className="text-rose-300 font-mono font-semibold">bad auth : authentication failed</code>. The password for user{' '}
+                        <code className="text-sky-300 font-mono">sonukr7435_db_user</code> does not match the database user credentials in Atlas.
+                      </>
+                    ) : (
+                      <>
+                        MongoDB Atlas rejected the connection ({' '}
+                        <code className="text-amber-300 font-mono">{dbHealth?.mongoConnectionError || 'TLS error'}</code>). The IP access list in Atlas needs to allow this container.
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-300 bg-black/40 p-2.5 rounded border border-amber-900/40 space-y-1.5">
+                <div className="font-semibold text-amber-300">How to fix in MongoDB Atlas:</div>
+                {dbHealth?.mongoConnectionError?.includes('bad auth') ? (
+                  <>
+                    <div>1. Open your <b>MongoDB Atlas Console $\rightarrow$ Security $\rightarrow$ Database Access</b>.</div>
+                    <div>2. Locate or add user: <code className="text-sky-300 font-mono">sonukr7435_db_user</code> (with readWriteAnyDatabase built-in role).</div>
+                    <div>3. Click <b>Edit $\rightarrow$ Edit Password</b> and assign a new password.</div>
+                    <div>4. Note: If the password contains special symbols (like <code className="text-amber-200">@</code> or <code className="text-amber-200">#</code>), ensure they are URL-encoded or use standard alphanumeric characters.</div>
+                  </>
+                ) : (
+                  <>
+                    <div>1. Log into your MongoDB Atlas Console.</div>
+                    <div>2. Go to <b>Security $\rightarrow$ Network Access $\rightarrow$ IP Access List</b>.</div>
+                    <div>3. Click <b>Add IP Address</b> $\rightarrow$ select <b>Allow Access from Anywhere (<span className="text-amber-200 font-mono">0.0.0.0/0</span>)</b>.</div>
+                  </>
+                )}
+                <div>5. Click the test button below to verify!</div>
+              </div>
+
+              {reconnectResult && (
+                <div className="p-2 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-mono break-all">
+                  {reconnectResult}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleTestMongoConnection}
+                disabled={isReconnecting}
+                className="w-full py-1.5 px-3 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isReconnecting ? 'animate-spin' : ''}`} />
+                <span>{isReconnecting ? 'Testing Atlas Connection...' : 'Test / Reconnect MongoDB Atlas'}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Redis & BullMQ Queue */}

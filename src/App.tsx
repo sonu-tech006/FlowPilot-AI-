@@ -487,6 +487,7 @@ function AppContent() {
         onSearchProjectUrl={handleSearchProjectUrl}
         onSignOut={handleSignOut}
         dbType={dbHealth?.databaseType}
+        dbHealth={dbHealth}
         isDiagnosing={isDiagnosing}
         activeInspectedUrl={activeInspectedUrl}
         activeAppName={activeAppName}
@@ -668,7 +669,13 @@ function AppContent() {
 
           {currentView === 'team' && <TeamView currentUser={currentUser} onSwitchUser={handleSwitchUser} />}
 
-          {currentView === 'settings' && <SettingsView onResetDemo={handleResetDemo} />}
+          {currentView === 'settings' && (
+            <SettingsView
+              onResetDemo={handleResetDemo}
+              dbHealth={dbHealth}
+              onRefreshDbHealth={() => api.getDbHealth().then(setDbHealth)}
+            />
+          )}
         </main>
       </div>
 

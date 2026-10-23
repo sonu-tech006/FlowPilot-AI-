@@ -1,0 +1,3 @@
+{
+  "mongoUri": "mongodb://sonukr7435_db_user:akTlbvDErfxvY7Fp@ac-kwurxiq-shard-00-00.5epwjns.mongodb.net:27017,ac-kwurxiq-shard-00-01.5epwjns.mongodb.net:27017,ac-kwurxiq-shard-00-02.5epwjns.mongodb.net:27017/flowpilot?ssl=true&replicaSet=atlas-11g7da-shard-0&authSource=admin"
+}

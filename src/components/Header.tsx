@@ -35,6 +35,12 @@ interface HeaderProps {
   onSearchProjectUrl: (url: string) => void;
   onSignOut?: () => void;
   dbType?: string;
+  dbHealth?: {
+    databaseType?: string;
+    isMongoConnected?: boolean;
+    mongoUriConfigured?: boolean;
+    mongoConnectionError?: string | null;
+  } | null;
   isDiagnosing?: boolean;
   activeInspectedUrl?: string;
   activeAppName?: string;
@@ -53,6 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchProjectUrl,
   onSignOut,
   dbType,
+  dbHealth,
   isDiagnosing = false,
   activeInspectedUrl = '',
   activeAppName = '',
@@ -117,16 +124,30 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Database connectivity badge */}
         <div
-          title={dbType || 'MongoDB Atlas / Local Synchronized Document Store'}
-          className={`hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border ${
-            isWhite
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              : 'bg-emerald-950/50 border-emerald-800/60 text-emerald-300'
+          title={
+            dbHealth?.isMongoConnected
+              ? 'MongoDB Atlas: Connected & Synchronized (Cluster0)'
+              : dbHealth?.mongoUriConfigured
+              ? 'Database: Local Document DB Active (.flowpilot-data/db.json). MongoDB Atlas URI configured, awaiting IP whitelist (0.0.0.0/0).'
+              : 'Database: Local Persistent Document DB Active'
+          }
+          className={`hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border transition-colors ${
+            dbHealth?.isMongoConnected
+              ? isWhite
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-emerald-950/50 border-emerald-800/60 text-emerald-300'
+              : isWhite
+              ? 'bg-amber-50 border-amber-200 text-amber-700'
+              : 'bg-amber-950/40 border-amber-800/60 text-amber-300'
           }`}
         >
-          <Database className="w-3 h-3 text-emerald-500" />
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-          <span>{dbType ? dbType.split(' ')[0] : 'MongoDB'}</span>
+          <Database className={`w-3 h-3 ${dbHealth?.isMongoConnected ? 'text-emerald-500' : 'text-amber-500'}`} />
+          <span
+            className={`w-1.5 h-1.5 rounded-full inline-block ${
+              dbHealth?.isMongoConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+            }`}
+          />
+          <span>{dbHealth?.isMongoConnected ? 'MongoDB (Atlas)' : 'Local DB (Active)'}</span>
         </div>
       </div>
 

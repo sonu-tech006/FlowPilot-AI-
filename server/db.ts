@@ -21,6 +21,7 @@ import {
 // Data storage directory
 const DATA_DIR = path.resolve(process.cwd(), '.flowpilot-data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'db-config.json');
 
 export interface DatabaseSchema {
   users: User[];
@@ -96,12 +97,44 @@ class DocumentDatabase {
     }
   }
 
+  public setCustomMongoUri(uri: string): void {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify({ mongoUri: uri.trim() }, null, 2), 'utf-8');
+      this.mongoUri = uri.trim();
+    } catch (e) {
+      console.error('Failed to save custom mongo URI:', e);
+    }
+  }
+
   public async initMongo(): Promise<void> {
-    const uri = process.env.MONGODB_URI;
-    this.mongoUri = uri || null;
-    if (!uri) {
+    let rawUri = process.env.MONGODB_URI;
+    if (fs.existsSync(CONFIG_FILE)) {
+      try {
+        const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+        if (cfg.mongoUri) {
+          rawUri = cfg.mongoUri;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    this.mongoUri = rawUri || null;
+    if (!rawUri) {
       console.log('ℹ️ [FlowPilot DB] MONGODB_URI not set. Running with embedded persistent document store.');
       return;
+    }
+
+    // Sanitize URI: if placeholder <db_username> or angle brackets exist
+    let uri = rawUri.trim();
+    if (uri.includes('<db_username>')) {
+      uri = uri.replace('<db_username>', 'sonukr7435_db_user');
+    }
+    if (uri.includes(':<') && uri.includes('>@')) {
+      uri = uri.replace(/:<([^>]+)>@/, ':$1@');
     }
 
     try {
@@ -128,10 +161,31 @@ class DocumentDatabase {
           await this.mongoDb.collection('users').updateOne({ id: u.id }, { $set: u }, { upsert: true });
         }
       }
+      // Sync workspaces
+      for (const w of this.data.workspaces) {
+        await this.mongoDb.collection('workspaces').updateOne({ id: w.id }, { $set: w }, { upsert: true });
+      }
+      // Sync workflows
+      for (const wf of this.data.workflows) {
+        await this.mongoDb.collection('workflows').updateOne({ id: wf.id }, { $set: wf }, { upsert: true });
+      }
+      // Sync dependencies
+      for (const d of this.data.dependencies) {
+        await this.mongoDb.collection('dependencies').updateOne({ id: d.id }, { $set: d }, { upsert: true });
+      }
+      // Sync SLA policies
+      for (const s of this.data.slaPolicies) {
+        await this.mongoDb.collection('slaPolicies').updateOne({ id: s.id }, { $set: s }, { upsert: true });
+      }
+      console.log(`🚀 [FlowPilot DB] Collections synced with MongoDB Atlas: users, workspaces, workflows, dependencies, slaPolicies.`);
     } catch (err: any) {
       this.isMongoConnected = false;
-      this.mongoConnectionError = err.message;
-      console.warn('⚠️ [FlowPilot DB] MongoDB connection failed, falling back to local document database:', err.message);
+      let errDetail = err.message || 'Connection failed';
+      if (errDetail.includes('bad auth') || errDetail.includes('authentication failed')) {
+        errDetail = 'bad auth : authentication failed (Incorrect username or password in MongoDB Atlas Database Access)';
+      }
+      this.mongoConnectionError = errDetail;
+      console.warn('⚠️ [FlowPilot DB] MongoDB connection failed, falling back to local document database:', errDetail);
     }
   }
 
@@ -156,6 +210,16 @@ class DocumentDatabase {
         fs.mkdirSync(DATA_DIR, { recursive: true });
       }
       fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+
+      // Asynchronous background mirror to MongoDB Atlas if connected
+      if (this.isMongoConnected && this.mongoDb) {
+        Promise.all([
+          ...this.data.users.map((u) => this.mongoDb!.collection('users').updateOne({ id: u.id }, { $set: u }, { upsert: true })),
+          ...this.data.workspaces.map((w) => this.mongoDb!.collection('workspaces').updateOne({ id: w.id }, { $set: w }, { upsert: true })),
+          ...this.data.workflows.map((wf) => this.mongoDb!.collection('workflows').updateOne({ id: wf.id }, { $set: wf }, { upsert: true })),
+          ...this.data.dependencies.map((d) => this.mongoDb!.collection('dependencies').updateOne({ id: d.id }, { $set: d }, { upsert: true })),
+        ]).catch((err) => console.warn('[MongoDB Atlas] Background sync warning:', err.message));
+      }
     } catch (err) {
       console.error('Failed to write db.json:', err);
     }
